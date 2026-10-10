@@ -1,29 +1,17 @@
 import "dotenv/config";
 
-// Uncomment for debugging
-// console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
-//
-// if (process.env.DATABASE_URL) {
-//   try {
-//     const url = new URL(process.env.DATABASE_URL);
-//
-//     console.log({
-//       protocol: url.protocol,
-//       username: url.username,
-//       host: url.host,
-//       database: url.pathname,
-//     });
-//   } catch (error) {
-//     console.error("DATABASE_URL is malformed:", error);
-//   }
-// }
-
 import express from "express";
 import subjectsRouter from "./routes/subject";
 import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
+if (!process.env.DATABASE_URL)
+  throw new Error("DATABASE_URL is not set in .env file");
+
+if (!process.env.FRONTEND_URL)
+  throw new Error("FRONTEND_URL is not set in .env file");
 
 app.use(
   cors({
