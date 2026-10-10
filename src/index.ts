@@ -1,29 +1,46 @@
-import 'dotenv/config';
+import "dotenv/config";
 
-import express from 'express';
-import { Pool } from 'pg';
+// Uncomment for debugging
+// console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+//
+// if (process.env.DATABASE_URL) {
+//   try {
+//     const url = new URL(process.env.DATABASE_URL);
+//
+//     console.log({
+//       protocol: url.protocol,
+//       username: url.username,
+//       host: url.host,
+//       database: url.pathname,
+//     });
+//   } catch (error) {
+//     console.error("DATABASE_URL is malformed:", error);
+//   }
+// }
+
+import express from "express";
+import subjectsRouter from "./routes/subject";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
 
-app.get('/', async (req, res) => {
-    let client;
-    try {
-        client = await pool.connect();
-        const { rows } = await client.query('SELECT * FROM cars');
-        res.json({ cars: rows });
-    } catch (error) {
-        console.error('Database query failed:', error);
-        res.status(500).json({ error: 'Failed to connect to the database.' });
-    } finally {
-        client?.release();
-    }
+app.use(express.json());
+
+app.use("/api/subjects", subjectsRouter);
+
+app.get("/", (req, res) => {
+  res.send("Hello World!");
 });
 
 app.listen(PORT, () => {
-    console.log(`Listening to http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
