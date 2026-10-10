@@ -9,10 +9,34 @@ const router = express.Router();
 // Get all subjects with optional search, filtering, and pagination
 router.get("/", async (req, res) => {
   try {
+    const MAX_LIMIT = 100;
     const { search, department, page = "1", limit = "10" } = req.query;
 
-    const currentPage = Math.max(1, Number(page));
-    const limitPerPage = Math.max(1, Number(limit));
+    if (
+      typeof page !== "string" ||
+      typeof limit !== "string" ||
+      page.trim() === "" ||
+      limit.trim() === ""
+    ) {
+      return res.status(400).json({
+        message: "Page and limit must be valid numbers.",
+      });
+    }
+
+    const currentPage = Number(page);
+    const limitPerPage = Number(limit);
+
+    if (
+      !Number.isInteger(currentPage) ||
+      currentPage < 1 ||
+      !Number.isInteger(limitPerPage) ||
+      limitPerPage < 1 ||
+      limitPerPage > MAX_LIMIT
+    ) {
+      return res.status(400).json({
+        message: `Page must be a positive integer and limit must be between 1 and ${MAX_LIMIT}.`,
+      });
+    }
 
     const offset = (currentPage - 1) * limitPerPage;
 
@@ -47,7 +71,7 @@ router.get("/", async (req, res) => {
 
     const totalCount = countResult[0]?.count ?? 0;
 
-    const subjectsList = await db
+    const subjectList = await db
       .select({
         ...getColumns(subjects),
         department: {
@@ -57,12 +81,12 @@ router.get("/", async (req, res) => {
       .from(subjects)
       .leftJoin(departments, eq(subjects.departmentId, departments.id))
       .where(whereClause)
-      .orderBy(desc(subjects.createdAt))
+      .orderBy(desc(subjects.createdAt), desc(subjects.id))
       .limit(limitPerPage)
-      .offset(offset);
+      .offset((currentPage - 1) * limitPerPage);
 
     res.status(200).json({
-      data: subjectsList,
+      data: subjectList,
       pagination: {
         page: currentPage,
         total: totalCount,
@@ -70,36 +94,18 @@ router.get("/", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("GET /subjects error:", error);
+    console.error("Failed to get subjects:", error);
 
     if (error instanceof Error) {
       console.error("Message:", error.message);
       console.error("Cause:", error.cause);
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to get subjects",
-      message: error instanceof Error ? error.message : String(error),
-      cause:
-        error instanceof Error && error.cause instanceof Error
-          ? error.cause.message
-          : String(error instanceof Error ? error.cause : ""),
+      message: "An unexpected error occurred while fetching subjects.",
     });
   }
 });
-
-router.get("/getDepartments", async (req, res) => {
-  const result = await db
-    .select({
-      id: subjects.id,
-    })
-    .from(subjects);
-
-  res.status(200).json({
-    data: result,
-  });
-});
-
-// router.get("/:id", async (req, res) => {});
 
 export default router;
