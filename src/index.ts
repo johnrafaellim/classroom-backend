@@ -1,12 +1,29 @@
-import express from "express";
+import 'dotenv/config';
+
+import express from 'express';
+import { Pool } from 'pg';
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-app.use(express.json())
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
 
-app.get("/", (req, res) => {
-    res.send("Welcome to the backend!");
-})
+app.get('/', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        const { rows } = await client.query('SELECT * FROM cars');
+        res.json({ cars: rows });
+    } catch (error) {
+        console.error('Database query failed:', error);
+        res.status(500).json({ error: 'Failed to connect to the database.' });
+    } finally {
+        client?.release();
+    }
+});
 
-app.listen(PORT, () => console.log(`App listening on port http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Listening to http://localhost:${PORT}`);
+});
