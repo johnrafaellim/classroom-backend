@@ -29,11 +29,11 @@ app.use(
   }),
 );
 
-// app.all("/api/auth/*any", toNodeHandler(auth));
+app.all("/api/auth/*any", toNodeHandler(auth));
 
 app.use(express.json());
 
-// app.use(securityMiddleware);
+app.use(securityMiddleware);
 
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/users", usersRouter);
